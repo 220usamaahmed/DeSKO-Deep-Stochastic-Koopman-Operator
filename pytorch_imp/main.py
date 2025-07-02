@@ -652,12 +652,13 @@ def generate_sample_prediction_with_plots(
             )
 
             # Get model predictions
-            predictions, koopman_states = model(states_tensor, actions_tensor)
+            # predictions, koopman_states = model(states_tensor, actions_tensor)
+            predictions = model.multi_step_prediction(
+                states_tensor[:, 0, :], actions_tensor
+            )
             actual_next_states = states_tensor[:, 1:, :]
 
-            print(
-                f"Output shapes - Predictions: {predictions.shape}, Koopman states: {koopman_states.shape}"
-            )
+            print(f"Output shapes - Predictions: {predictions.shape}")
 
             # Calculate and print error statistics
             all_errors = torch.abs(predictions - actual_next_states)
@@ -792,10 +793,10 @@ def generate_sample_prediction_with_plots_minari(
             )
 
             # Get model predictions
+            # predictions, latent_states = model(states_tensor, actions_tensor)
             predictions = model.multi_step_prediction(
                 states_tensor[:, 0, :], actions_tensor
             )
-            # predictions, latent_states = model(states_tensor, actions_tensor)
 
             actual_next_states = states_tensor[:, 1:, :]
 
@@ -911,16 +912,16 @@ def demonstrate_model_capabilities_with_plots_minari(
 # Example usage
 if __name__ == "__main__":
     # Train the model
-    model = train_using_random_sampling(
-        env_name=ENV_NAME,
-        num_trajectories=500,
-        max_traj_len=20,
-        seq_len=SEQ_LENGTH,
-        latent_dim=LATENT_DIM,
-        num_epochs=300,
-        batch_size=32,
-        learning_rate=1e-3,
-    )
+    # model = train_using_random_sampling(
+    #     env_name=ENV_NAME,
+    #     num_trajectories=500,
+    #     max_traj_len=20,
+    #     seq_len=SEQ_LENGTH,
+    #     latent_dim=LATENT_DIM,
+    #     num_epochs=300,
+    #     batch_size=32,
+    #     learning_rate=1e-3,
+    # )
     # model = train_using_expert_dataset(
     #     dataset_name=DATASET_NAME,
     #     num_trajectories=1000,
@@ -936,10 +937,10 @@ if __name__ == "__main__":
     print("\n" + "=" * 80)
     print("DEMONSTRATING MODEL LOADING AND SAMPLE PREDICTION WITH PLOTS")
     print("=" * 80)
-    figures = demonstrate_model_capabilities_with_plots(
-        "final_koopman_model.pth", ENV_NAME
-    )
-    # figures = demonstrate_model_capabilities_with_plots_minari(
-    #     "final_koopman_model.pth",
-    #     DATASET_NAME,
+    # figures = demonstrate_model_capabilities_with_plots(
+    #     "final_koopman_model.pth", ENV_NAME
     # )
+    figures = demonstrate_model_capabilities_with_plots_minari(
+        "final_koopman_model.pth",
+        DATASET_NAME,
+    )

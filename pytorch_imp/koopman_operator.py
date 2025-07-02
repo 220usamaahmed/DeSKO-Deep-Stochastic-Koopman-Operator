@@ -169,6 +169,7 @@ class KoopmanOperator(nn.Module):
             loss: scalar tensor
         """
         predictions, _ = self.forward(states, actions)
+        predictions = self.multi_step_prediction(states[:, 0, :], actions)
         targets = states[:, 1:, :]  # Target next states
 
         # Compute MSE loss
