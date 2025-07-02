@@ -12,14 +12,16 @@ import matplotlib.pyplot as plt
 DATASETS = {
     "InvertedDoublePendulum-v5": "mujoco/inverteddoublependulum/expert-v0",
     "InvertedPendulum-v5": "mujoco/invertedpendulum/expert-v0",
+    "Swimmer-v5": "mujoco/swimmer/medium-v0",
 }
 
 # ENV_NAME = "InvertedDoublePendulum-v5"
-ENV_NAME = "InvertedPendulum-v5"
+# ENV_NAME = "InvertedPendulum-v5"
+ENV_NAME = "Swimmer-v5"
 
 DATASET_NAME = DATASETS[ENV_NAME]
 
-LATENT_DIM = 24
+LATENT_DIM = 32
 SEQ_LENGTH = 20
 
 
@@ -306,6 +308,7 @@ def train_koopman_model(
 
     # Create model
     model = KoopmanOperator(state_dim, action_dim, latent_dim)
+
     model.set_normalization_params(state_mean, state_std, action_mean, action_std)
 
     # Setup training
@@ -330,7 +333,11 @@ def train_koopman_model(
             states, actions = states.to(device), actions.to(device)
 
             optimizer.zero_grad()
-            loss = model.compute_loss(states, actions)
+            loss = model.compute_loss(
+                states,
+                actions,
+                # loss_weights=torch.tensor([1, 1, 2, 2]
+            )
             loss.backward()
             optimizer.step()
 
@@ -703,7 +710,7 @@ def demonstrate_model_capabilities_with_plots(
 
     try:
         # Load the trained model
-        model, norm_stats = load_model(checkpoint_path, state_dim, action_dim, 24)
+        model, norm_stats = load_model(checkpoint_path, state_dim, action_dim)
 
         print(f"\nNormalization statistics:")
         print(f"State mean: {norm_stats['state_mean']}")
@@ -713,7 +720,7 @@ def demonstrate_model_capabilities_with_plots(
 
         # Generate sample predictions with plots
         figures = generate_sample_prediction_with_plots(
-            model, env, seq_len=15, num_samples=1, save_plots=True
+            model, env, seq_len=20, num_samples=1, save_plots=True
         )
 
         # Quick evaluation
@@ -805,7 +812,6 @@ def generate_sample_prediction_with_plots_minari(
             print(f"  Max Absolute Error:  {max_error:.6f}")
             print(f"  Mean Squared Error:  {mse:.6f}")
 
-            print(predictions.shape, means.shape, stds.shape)
             # Unnormalize predictions and actual_next_states for plotting
             means = torch.tensor(
                 means, dtype=predictions.dtype, device=predictions.device
@@ -828,7 +834,7 @@ def generate_sample_prediction_with_plots_minari(
                 actual_next_states,
                 states_tensor,
                 sample_idx,
-                max_steps=min(SEQ_LENGTH, predictions.shape[1]),
+                max_steps=min(seq_len, predictions.shape[1]),
             )
             all_figures.append(fig)
 
@@ -864,7 +870,7 @@ def demonstrate_model_capabilities_with_plots_minari(
 
     try:
         # Load the trained model
-        model, norm_stats = load_model(checkpoint_path, state_dim, action_dim, 24)
+        model, norm_stats = load_model(checkpoint_path, state_dim, action_dim)
 
         print(f"\nNormalization statistics:")
         print(f"State mean: {norm_stats['state_mean']}")
@@ -905,18 +911,8 @@ def demonstrate_model_capabilities_with_plots_minari(
 # Example usage
 if __name__ == "__main__":
     # Train the model
-    # model = train_using_random_sampling(
-    #     env_name=ENV_NAME,
-    #     num_trajectories=500,
-    #     max_traj_len=20,
-    #     seq_len=SEQ_LENGTH,
-    #     latent_dim=LATENT_DIM,
-    #     num_epochs=300,
-    #     batch_size=32,
-    #     learning_rate=1e-3,
-    # )
-    model = train_using_expert_dataset(
-        dataset_name=DATASET_NAME,
+    model = train_using_random_sampling(
+        env_name=ENV_NAME,
         num_trajectories=500,
         max_traj_len=20,
         seq_len=SEQ_LENGTH,
@@ -925,15 +921,25 @@ if __name__ == "__main__":
         batch_size=32,
         learning_rate=1e-3,
     )
+    # model = train_using_expert_dataset(
+    #     dataset_name=DATASET_NAME,
+    #     num_trajectories=1000,
+    #     max_traj_len=20,
+    #     seq_len=SEQ_LENGTH,
+    #     latent_dim=LATENT_DIM,
+    #     num_epochs=100,
+    #     batch_size=32,
+    #     learning_rate=1e-3,
+    # )
 
     # Demonstrate model loading and sample generation with plots
     print("\n" + "=" * 80)
     print("DEMONSTRATING MODEL LOADING AND SAMPLE PREDICTION WITH PLOTS")
     print("=" * 80)
-    # figures = demonstrate_model_capabilities_with_plots(
-    #     "final_koopman_model.pth", ENV_NAME
-    # )
-    figures = demonstrate_model_capabilities_with_plots_minari(
-        "final_koopman_model.pth",
-        DATASET_NAME,
+    figures = demonstrate_model_capabilities_with_plots(
+        "final_koopman_model.pth", ENV_NAME
     )
+    # figures = demonstrate_model_capabilities_with_plots_minari(
+    #     "final_koopman_model.pth",
+    #     DATASET_NAME,
+    # )

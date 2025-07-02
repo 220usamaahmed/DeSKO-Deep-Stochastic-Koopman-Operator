@@ -172,14 +172,16 @@ class KoopmanOperator(nn.Module):
         targets = states[:, 1:, :]  # Target next states
 
         # Compute MSE loss
-        mse_loss = F.mse_loss(predictions, targets, reduction="none")
+        # loss = F.mse_loss(predictions, targets, reduction="none")
+        loss = F.l1_loss(predictions, targets, reduction="none")
+        # loss = F.smooth_l1_loss(predictions, targets, reduction="none")
 
         # Apply loss weights if provided
         if loss_weights is not None:
             loss_weights = loss_weights.to(predictions.device)
-            mse_loss = mse_loss * loss_weights.unsqueeze(0).unsqueeze(0)
+            mse_loss = loss * loss_weights.unsqueeze(0).unsqueeze(0)
 
-        return mse_loss.mean()
+        return loss.mean()
 
     def set_normalization_params(
         self, state_shift, state_scale, action_shift, action_scale
